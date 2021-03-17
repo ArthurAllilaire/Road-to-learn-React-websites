@@ -8,79 +8,73 @@
 
 import './App.css';
 import React from 'react';
-// //Api url values
-// const DEFAULT_QUERY = 'redux';
-// const PATH_BASE = 'https://hn.algolia.com/api/v1';
-// const PATH_SEARCH = '/search';
-// const PARAM_SEARCH = 'query=';
-
-const list = [
-{
-title: 'React',
-url: 'https://facebook.github.io/react/',
-author: 'Jordan Walke',
-num_comments: 3,
-points: 4,
-objectID: 0,
-},
-{
-title: 'Redux',
-url: 'https://github.com/reactjs/redux',
-author: 'Dan Abramov, Andrew Clark',
-num_comments: 2,
-points: 5,
-objectID: 1,
-}
-];
+//Api url values
+const DEFAULT_QUERY = 'redux';
+const PATH_BASE = 'https://hn.algolia.com/api/v1';
+const PATH_SEARCH = '/search';
+const PARAM_SEARCH = 'query=';
 
 class App extends React.Component {
   constructor(props){
     super(props);
     this.state = {
-      list,
-      query: "",
+      result:null,
+      query: DEFAULT_QUERY,
     };
     this.onSearchChange = this.onSearchChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-
+    this.setSearchTopstories = this.setSearchTopstories.bind(this);
+    this.fetchSearchTopstories = this.fetchSearchTopstories.bind(this);
   }
   onSearchChange(event){
     this.setState({query: event.target.value});
   }
   handleSubmit(event){
+    const { query } = this.state;
+    console.log(query)
+    this.fetchSearchTopstories(query);
     event.preventDefault();
-    if (this.state.query !== ""){
-      this.setState({query: "Thanks for submitting!"})
-    }
+  }
+  setSearchTopstories(result){
+    this.setState({result});
+  }
+  fetchSearchTopstories(query){
+    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}`)
+      .then(response => response.json())
+      .then(result => this.setSearchTopstories(result));
+  }
+  componentDidMount() {
+    const { query } = this.state;
+    this.fetchSearchTopstories(query);
   }
   render(){
-    const {list,query} = this.state;
+    const {result,query} = this.state;
     return(
       <div className="page">
         <div className="interactions">
-          <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit}>
-            <Search />
-          </Search>
+          <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit} />
         </div>
-        <Table list={list} query={query} />
+        <TableWithNull list={result} query={query}/>
       </div>
     )
   }
 }
-const Search = (props) => {
-    const { value, onChange, onSubmit, children } = props;
+const Search = ({ value, onChange, onSubmit }) => {
     return (
       <form onSubmit={onSubmit}>
-        {children} <input type="text" value={value} onChange={onChange} />
+        <input type="text" value={value} onChange={onChange} />
+        <button type="submit">Submit</button>
       </form>
     );
 }
 
 function Table (props){
-    const {list,query} = props;
+    let {list,query} = props.props;
+    list = list.hits;
     let filtList = list.filter(
       function(item){
-        return !this || item.title.toLowerCase() === this.toLowerCase()
+        let words = item.title.toLowerCase().split(" ")
+        return !this || words.indexOf(this.toLowerCase()) !== -1
       },
       //Set this equal to query
       query
@@ -100,5 +94,13 @@ function Table (props){
       </div>
     )
 }
+function withNull(Component){
+  return function(props){
+    return props.list
+    ? <Component props = { props }/>
+    : null
+  }
+}
+const TableWithNull = withNull(Table);
 
 export default App;
