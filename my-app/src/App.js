@@ -108,7 +108,7 @@ function Table (props){
     list = list.hits;
     let filtList = list.filter(
       function(item){
-        if(item.url === null){
+        if(item.url === null || item.url === ""){
           return false;
         }
         return !this || item.title.toLowerCase().split(" ").indexOf(this.toLowerCase()) !== -1
