@@ -23,7 +23,7 @@ import React from 'react';
 //Api url values
 const DEFAULT_QUERY = 'redux';
 const DEFAULT_PAGE = 0;
-const DEFAULT_HPP = "100";
+const DEFAULT_HPP = "10";
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
@@ -34,9 +34,10 @@ class App extends React.Component {
   constructor(props){
     super(props);
     this.state = {
-      result:null,
+      results:null,
       query: DEFAULT_QUERY,
-      filter: ""
+      filter: "",
+      searchKey: DEFAULT_QUERY
     };
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
@@ -51,41 +52,50 @@ class App extends React.Component {
     this.setState({filter: event.target.value});
   }
   handleSubmit(event){
-    const { query } = this.state;
-    console.log(query)
-    this.fetchSearchTopstories(query, DEFAULT_PAGE);
+    const { query, results} = this.state;
+    this.setState({searchKey: query});
+    console.log(results)
+    if(!results[query]){this.fetchSearchTopstories(query, DEFAULT_PAGE)}
     event.preventDefault();
   }
   setSearchTopstories(result){
-    const {hits, page} = result
+    const {hits, page} = result;
+    const{searchKey} = this.state;
     //If first page empty array otherwise old hits
-    const oldHits = page === 0 ? [] : this.state.result.hits
+    const oldHits = page === 0 ? [] : this.state.results[searchKey].hits
     const updatedHits = [...oldHits, ...hits]
-    this.setState({result: {hits: updatedHits, page}});
+    //use function as rely on previous state
+    this.setState(prevState =>
+      ({
+        //have to first make results same as previous results before updating searchKey due to shallow merging - which would have got rid of everything else.
+        results: {...prevState.results, [searchKey]: {hits: updatedHits, page}}
+      }));
   }
-  fetchSearchTopstories(query, page){
+  fetchSearchTopstories(searchKey, page){
     //Added page feature
-    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
+    console.log("called")
+    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchKey}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
       .then(response => response.json())
       .then(result => this.setSearchTopstories(result));
   }
   componentDidMount() {
-    const { query } = this.state;
-    this.fetchSearchTopstories(query, DEFAULT_PAGE);
+    const { searchKey } = this.state;
+    this.fetchSearchTopstories(searchKey, DEFAULT_PAGE);
   }
   render(){
-    const {result,query, filter} = this.state;
-    //Aim is set result.page = page but if false return 0, but if result doesn't exist you get an error as you call undefined.page. So first check that result is not undefined (by checking for a truthy value) then return result.page 
-    const page = (result && result.page) || 0;
+    const {results, query, filter, searchKey} = this.state;
+    //to avoid errors check that all objects needed to reach page and list are truthy (not undefined or null) otherwise set it to 0 
+    const page = (results && results[searchKey] && results[searchKey].page) || 0;
+    const list = (results && results[searchKey] && results[searchKey].hits) || [];
     return(
       <div className="page">
         <div className="interactions">
           <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit} label="Get results from api"/>
           <Search value={filter} onChange={this.onFilterChange} label="Filter results from API"/>
         </div>
-        <TableWithNull list={result} filter={filter}/>
+        <Table list={list} filter={filter}/>
         <div className = "interactions">
-          <Button onClick={() => this.fetchSearchTopstories(query, page +1)}>
+          <Button onClick={() => this.fetchSearchTopstories(searchKey, page +1)}>
             More
           </Button>
         </div>
@@ -104,8 +114,7 @@ const Search = ({ value, onChange, onSubmit, label }) => {
 }
 
 function Table (props){
-    let {list,filter} = props.props;
-    list = list.hits;
+    let {list,filter} = props;
     let filtList = list.filter(
       function(item){
         if(item.url === null || item.url === ""){
@@ -119,7 +128,6 @@ function Table (props){
     return (
       <div className="table">
         { filtList.map(function(item) {
-          console.log(item)
           return (
             <div key={item.objectId} className="table-row">
               <span style={{width:"40%"}}><a href={item.url}>{item.title}</a></span>
@@ -132,14 +140,15 @@ function Table (props){
       </div>
     )
 }
-function withNull(Component){
-  return function(props){
-    return props.list
-    ? <Component props = {props}/>
-    : null
-  }
-}
-const TableWithNull = withNull(Table);
+// No longer needed, implemented during cache checks 
+// function withNull(Component){
+//   return function(props){
+//     return props.list
+//     ? (<Component  {...props}/>)
+//     : null
+//   }
+// }
+// const TableWithNull = withNull(Table);
 
 const Button = ({onClick, children}) => 
   <button onClick={onClick} type="button">
