@@ -23,11 +23,12 @@ import React from 'react';
 //Api url values
 const DEFAULT_QUERY = 'redux';
 const DEFAULT_PAGE = 0;
+const DEFAULT_HPP = "100";
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
 const PARAM_PAGE = 'page=';
-
+const PARAM_HPP = 'hitsPerPage=';
 
 class App extends React.Component {
   constructor(props){
@@ -35,14 +36,19 @@ class App extends React.Component {
     this.state = {
       result:null,
       query: DEFAULT_QUERY,
+      filter: ""
     };
     this.onSearchChange = this.onSearchChange.bind(this);
+    this.onFilterChange = this.onFilterChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.setSearchTopstories = this.setSearchTopstories.bind(this);
     this.fetchSearchTopstories = this.fetchSearchTopstories.bind(this);
   }
   onSearchChange(event){
     this.setState({query: event.target.value});
+  }
+  onFilterChange(event){
+    this.setState({filter: event.target.value});
   }
   handleSubmit(event){
     const { query } = this.state;
@@ -59,7 +65,7 @@ class App extends React.Component {
   }
   fetchSearchTopstories(query, page){
     //Added page feature
-    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}&${PARAM_PAGE}${page}`)
+    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
       .then(response => response.json())
       .then(result => this.setSearchTopstories(result));
   }
@@ -68,15 +74,16 @@ class App extends React.Component {
     this.fetchSearchTopstories(query, DEFAULT_PAGE);
   }
   render(){
-    const {result,query} = this.state;
+    const {result,query, filter} = this.state;
     //Aim is set result.page = page but if false return 0, but if result doesn't exist you get an error as you call undefined.page. So first check that result is not undefined (by checking for a truthy value) then return result.page 
     const page = (result && result.page) || 0;
     return(
       <div className="page">
         <div className="interactions">
-          <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit} />
+          <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit} label="Get results from api"/>
+          <Search value={filter} onChange={this.onFilterChange} label="Filter results from API"/>
         </div>
-        <TableWithNull list={result} query={query}/>
+        <TableWithNull list={result} filter={filter}/>
         <div className = "interactions">
           <Button onClick={() => this.fetchSearchTopstories(query, page +1)}>
             More
@@ -86,17 +93,18 @@ class App extends React.Component {
     )
   }
 }
-const Search = ({ value, onChange, onSubmit }) => {
+const Search = ({ value, onChange, onSubmit, label }) => {
     return (
       <form onSubmit={onSubmit}>
+        <label style={{padding:"4%"}}>{label}</label>
         <input type="text" value={value} onChange={onChange} />
-        <button type="submit">Submit</button>
+        {onSubmit ? <button type="submit">Submit</button>: null }
       </form>
     );
 }
 
 function Table (props){
-    let {list,query} = props.props;
+    let {list,filter} = props.props;
     list = list.hits;
     let filtList = list.filter(
       function(item){
@@ -106,7 +114,7 @@ function Table (props){
         return !this || item.title.toLowerCase().split(" ").indexOf(this.toLowerCase()) !== -1
       },
       //Set this equal to query
-      query
+      filter
     );
     return (
       <div className="table">
@@ -127,7 +135,7 @@ function Table (props){
 function withNull(Component){
   return function(props){
     return props.list
-    ? <Component props = { props }/>
+    ? <Component props = {props}/>
     : null
   }
 }
