@@ -5,6 +5,18 @@
 // npm test
 // Builds the app for production
 // npm run build
+/* Result from api
+   {hits: Array(20), nbHits: 15365, page: 0, nbPages: 50, hitsPerPage: 20, …}
+      exhaustiveNbHits: true
+      hits: (20) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+      hitsPerPage: 20
+      nbHits: 15365
+      nbPages: 50
+      page: 0
+      params: "advancedSyntax=true&analytics=true&analyticsTags=backend&page=0&query=redux"
+      processingTimeMS: 5
+      query: "redux" 
+    */
 
 import './App.css';
 import React from 'react';
@@ -15,6 +27,7 @@ const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
 const PARAM_PAGE = 'page=';
+
 
 class App extends React.Component {
   constructor(props){
@@ -38,7 +51,11 @@ class App extends React.Component {
     event.preventDefault();
   }
   setSearchTopstories(result){
-    this.setState({result});
+    const {hits, page} = result
+    //If first page empty array otherwise old hits
+    const oldHits = page === 0 ? [] : this.state.result.hits
+    const updatedHits = [...oldHits, ...hits]
+    this.setState({result: {hits: updatedHits, page}});
   }
   fetchSearchTopstories(query, page){
     //Added page feature
@@ -83,8 +100,10 @@ function Table (props){
     list = list.hits;
     let filtList = list.filter(
       function(item){
-        let words = item.title.toLowerCase().split(" ")
-        return !this || words.indexOf(this.toLowerCase()) !== -1
+        if(item.url === null){
+          return false;
+        }
+        return !this || item.title.toLowerCase().split(" ").indexOf(this.toLowerCase()) !== -1
       },
       //Set this equal to query
       query
@@ -92,8 +111,9 @@ function Table (props){
     return (
       <div className="table">
         { filtList.map(function(item) {
+          console.log(item)
           return (
-            <div key={item.title.toString()} className="table-row">
+            <div key={item.objectId} className="table-row">
               <span style={{width:"40%"}}><a href={item.url}>{item.title}</a></span>
               <span style={{width:"30%"}}>{item.author}</span>
               <span style={{width:"15%"}}>{item.num_comments}</span>
