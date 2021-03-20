@@ -54,7 +54,6 @@ class App extends React.Component {
   handleSubmit(event){
     const { query, results} = this.state;
     this.setState({searchKey: query});
-    console.log(results)
     if(!results[query]){this.fetchSearchTopstories(query, DEFAULT_PAGE)}
     event.preventDefault();
   }
@@ -73,7 +72,6 @@ class App extends React.Component {
   }
   fetchSearchTopstories(searchKey, page){
     //Added page feature
-    console.log("called")
     fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchKey}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
       .then(response => response.json())
       .then(result => this.setSearchTopstories(result));
@@ -117,10 +115,12 @@ function Table (props){
     let {list,filter} = props;
     let filtList = list.filter(
       function(item){
-        if(item.url === null || item.url === ""){
+        if(item.url === null || item.url === ""){ 
           return false;
         }
-        return !this || item.title.toLowerCase().split(" ").indexOf(this.toLowerCase()) !== -1
+        let words = item.title;
+        const regex = new RegExp(`${this}`,"i")
+        return regex.test(words)
       },
       //Set this equal to query
       filter
