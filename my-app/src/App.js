@@ -10,9 +10,11 @@ import './App.css';
 import React from 'react';
 //Api url values
 const DEFAULT_QUERY = 'redux';
+const DEFAULT_PAGE = 0;
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
+const PARAM_PAGE = 'page=';
 
 class App extends React.Component {
   constructor(props){
@@ -32,29 +34,37 @@ class App extends React.Component {
   handleSubmit(event){
     const { query } = this.state;
     console.log(query)
-    this.fetchSearchTopstories(query);
+    this.fetchSearchTopstories(query, DEFAULT_PAGE);
     event.preventDefault();
   }
   setSearchTopstories(result){
     this.setState({result});
   }
-  fetchSearchTopstories(query){
-    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}`)
+  fetchSearchTopstories(query, page){
+    //Added page feature
+    fetch(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${query}&${PARAM_PAGE}${page}`)
       .then(response => response.json())
       .then(result => this.setSearchTopstories(result));
   }
   componentDidMount() {
     const { query } = this.state;
-    this.fetchSearchTopstories(query);
+    this.fetchSearchTopstories(query, DEFAULT_PAGE);
   }
   render(){
     const {result,query} = this.state;
+    //Aim is set result.page = page but if false return 0, but if result doesn't exist you get an error as you call undefined.page. So first check that result is not undefined (by checking for a truthy value) then return result.page 
+    const page = (result && result.page) || 0;
     return(
       <div className="page">
         <div className="interactions">
           <Search value={query} onChange={this.onSearchChange} onSubmit={this.handleSubmit} />
         </div>
         <TableWithNull list={result} query={query}/>
+        <div className = "interactions">
+          <Button onClick={() => this.fetchSearchTopstories(query, page +1)}>
+            More
+          </Button>
+        </div>
       </div>
     )
   }
@@ -102,5 +112,10 @@ function withNull(Component){
   }
 }
 const TableWithNull = withNull(Table);
+
+const Button = ({onClick, children}) => 
+  <button onClick={onClick} type="button">
+    {children}
+  </button>
 
 export default App;
