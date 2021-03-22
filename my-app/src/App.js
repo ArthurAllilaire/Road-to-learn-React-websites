@@ -156,3 +156,8 @@ const Button = ({onClick, children}) =>
   </button>
 
 export default App;
+export{
+  Button,
+  Search,
+  Table,
+};
