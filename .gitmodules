@@ -1,0 +1,3 @@
+[submodule "testing-app"]
+	path = testing-app
+	url = https://github.com/ArthurAllilaire/Road-to-learn-React-websites.git
