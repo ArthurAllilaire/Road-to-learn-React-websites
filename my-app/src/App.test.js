@@ -41,4 +41,5 @@ describe('Search', () => {
   );
   let tree = component.toJSON();
   expect(tree).toMatchSnapshot();
-  }
+  })
+})
